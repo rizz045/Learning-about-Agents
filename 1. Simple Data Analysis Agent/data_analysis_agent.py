@@ -8,3 +8,77 @@ from datetime import datetime
 from typing import List, Dict, Any, Optional
 import io
 import base64
+
+class DataAnalysisAgent:
+
+    def __init__(self, name: str = 'Data Assistant'):
+        self.name = name
+        self.data = None
+        self.file_path = None
+        self.history = []
+        self.log(f'{self.name} initialized and ready')
+    
+    def log(self, message: str) -> None:
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        self.history.append(f'[{timestamp}] {message}')
+
+    def load_data(self, file_path: str=None, file_content = None) -> bool:
+        try:
+            if file_content is not None:
+                if isinstance(file_content, bytes):
+                    self.data = pd.read_csv(io.BytersIO(file_content))
+                else:
+                    self.data = file_content
+                self.file_path = 'uploaded file'
+            
+            elif file_path is not None:
+                if file_path.endswith('.csv'):
+                    self.data = pd.read_csv(file_path)
+                elif file_path.endswith(('.xlsx','.xls')):
+                    self.data = pd.read_excel(file_path)
+                else:
+                    self.log(f'Unsupported file format: {file_path}')
+                    return False
+                self.file_path = file_path
+            else:
+                self.log("No data source provided")
+                return False
+            
+            self.log(f"Successfully loaded data from {self.file_path}")
+            return True
+        
+        except Exception as e:
+            self.log(f"Error Loading data: {str(e)}")
+            return False
+
+    def describe_data(self) -> Dict[str, Any]:
+        if self.data is None:
+            self.log('No data loaded to describe')
+            return {'Error':"No data Loaded"}
+        
+        summary = {
+            'rows': len(self.data),
+            'columns': len(self.data.columns),
+            'column_names': list(self.data.columns),
+            'data_types': {col: str(dtype) for col, dtype in self.data.dtypes.items()},
+            'missing_values': self.data.isna().sum().to_dict(),
+            'numeric_summary': self.data.describe().to_dict() if not self.data.select_dtypes(include=[np.number]).empty else {}
+        }
+
+        self.log('Generated data summary')
+        return summary
+    
+    def filter_data(self, conditions: Dict[str, Any]) -> pd.DataFrame:
+        if self.data is None:
+            self.log('No data loaded to filter')
+            return pd.DataFrame()
+        
+        filtered_data = self.data.copy()
+        for col, val in conditions.items():
+            if col in filtered_data.columns:
+                filtered_data = filtered_data[filtered_data[col] == val]
+        
+        self.log(f'filtered data using conditions: {conditions}')
+        return filtered_data
+    
+    
