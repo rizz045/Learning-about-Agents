@@ -81,4 +81,43 @@ class DataAnalysisAgent:
         self.log(f'filtered data using conditions: {conditions}')
         return filtered_data
     
+    def calculate_statistics(self, columns: List[str] = None)->Dict[str, Dict[str, float]]:
+        if self.data is None:
+            self.log('No data Loaded for statistics')
+            return{'error': 'No data loaded'}
+        
+        if columns is None:
+            columns = self.data.select_dtypes(include=[np.number]).columns.tolist()
+
+        stats = {}
+        for col in columns:
+            if col in self.data.columns:
+                if pd.api.is_numeric_dtypes(self.data[col]):
+                    stats[col] = {
+                        'mean':self.data[col].mean(),
+                        'median':self.data[col].median(),
+                        'std':self.data[col].std(),
+                        'min':self.data[col].min(),
+                        'max':self.data[col].max(),
+                    }
+                else:
+                    stats[col] = {
+                        'unique_values': self.data[col].nunique(),
+                        'most_common': self.data[col].value_counts().index[0] if not self.data[col].value_counts().empty else None
+                    }
+
+        self.log(f"Calculated statistics for columns: {columns}")
+        return stats
+    
+    def generate_correlation_matrix(self) -> pd.DataFrame:
+        """Generate correlation matrix for numeric columns"""
+        if self.data is None:
+            self.log("No data loaded for correlation analysis")
+            return pd.DataFrame()
+        
+        numeric_cols = self.data.select_dtypes(include=[np.number]).columns
+        corr_matrix = self.data[numeric_cols].corr()
+        self.log("Generated correlation matrix")
+        return corr_matrix
+    
     
