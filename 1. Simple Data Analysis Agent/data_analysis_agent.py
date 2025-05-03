@@ -194,4 +194,65 @@ class DataAnalysisAgent:
                 <th>Missing Values</th>
             </tr>
         """
-        
+        for col in summary['column_names']:
+            html += f"""
+            <tr>
+                <td>{col}</td>
+                <td>{summary['data_types'][col]}</td>
+                <td>{summary['missing_values'][col]}</td>
+            </tr>
+            """
+
+        html += """
+        </table>
+        """
+
+        # Add statistics for numeric columns
+        numeric_cols = self.data.select_dtypes(include=[np.number]).columns
+        if not numeric_cols.empty:
+            stats = self.calculate_statistics(numeric_cols)
+
+            html += "<h2>Numeric Column Statistics</h2>"
+            html += "<table border='1'><tr><th>Column</th><th>Mean</th><th>Median</th><th>Std Dev</th><th>Min</th><th>Max</th></tr>"
+
+            for col in stats:
+                if "mean" in stats[col]:  # Check if it's a numeric column
+                    html += f"""
+                    <tr>
+                        <td>{col}</td>
+                        <td>{stats[col]["mean"]:.2f}</td>
+                        <td>{stats[col]["median"]:.2f}</td>
+                        <td>{stats[col]["std"]:.2f}</td>
+                        <td>{stats[col]["min"]:.2f}</td>
+                        <td>{stats[col]["max"]:.2f}</td>
+                    </tr>
+                    """
+
+            html += "</table>"
+
+        # Add categorical column information
+        cat_cols = self.data.select_dtypes(exclude=[np.number]).columns
+        if not cat_cols.empty:
+            html += "<h2>Categorical Column Information</h2>"
+            html += "<table border='1'><tr><th>Column</th><th>Unique Values</th><th>Most Common</th></tr>"
+
+            for col in cat_cols:
+                unique = self.data[col].nunique()
+                most_common = self.data[col].value_counts().index[0] if not self.data[
+                    col].value_counts().empty else "N/A"
+                html += f"""
+                <tr>
+                    <td>{col}</td>
+                    <td>{unique}</td>
+                    <td>{most_common}</td>
+                </tr>
+                """
+
+            html += "</table>"
+
+        self.log("Generated HTML report")
+        return html
+
+    def get_history(self) -> List[str]:
+        """Return the agent's action history"""
+        return self.history
