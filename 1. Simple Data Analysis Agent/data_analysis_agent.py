@@ -119,5 +119,52 @@ class DataAnalysisAgent:
         corr_matrix = self.data[numeric_cols].corr()
         self.log("Generated correlation matrix")
         return corr_matrix
-    
+    def generate_plots(self):
+        """Generate common plots for data visualization"""
+        if self.data is None:
+            self.log("No data loaded for plotting")
+            return []
+
+        plots = []
+
+        # Create histograms for numeric columns
+        numeric_cols = self.data.select_dtypes(include=[np.number]).columns[:5]  # Limit to first 5
+        if not numeric_cols.empty:
+            fig, axes = plt.subplots(len(numeric_cols), 1, figsize=(10, 3 * len(numeric_cols)))
+            if len(numeric_cols) == 1:
+                axes = [axes]  # Make it iterable if only one subplot
+
+            for i, col in enumerate(numeric_cols):
+                axes[i].hist(self.data[col].dropna(), bins=20, edgecolor='black')
+                axes[i].set_title(f'Distribution of {col}')
+                axes[i].set_xlabel(col)
+                axes[i].set_ylabel('Frequency')
+
+            plt.tight_layout()
+            plots.append(("histograms", fig))
+
+        # Create correlation heatmap
+        numeric_cols = self.data.select_dtypes(include=[np.number]).columns
+        if len(numeric_cols) > 1:
+            fig, ax = plt.subplots(figsize=(10, 8))
+            corr_matrix = self.data[numeric_cols].corr()
+            sns.heatmap(corr_matrix, annot=True, cmap='coolwarm', ax=ax)
+            ax.set_title('Correlation Matrix')
+            plots.append(("correlation", fig))
+
+        # Create bar chart for categorical columns (top 5 values)
+        cat_cols = self.data.select_dtypes(exclude=[np.number]).columns[:3]  # Limit to first 3
+        for col in cat_cols:
+            if self.data[col].nunique() < 15:  # Only for columns with reasonable number of categories
+                fig, ax = plt.subplots(figsize=(10, 6))
+                value_counts = self.data[col].value_counts().nlargest(10)
+                value_counts.plot(kind='bar', ax=ax)
+                ax.set_title(f'Top Values in {col}')
+                ax.set_ylabel('Count')
+                plt.xticks(rotation=45, ha='right')
+                plt.tight_layout()
+                plots.append((f"barchart_{col}", fig))
+
+        self.log(f"Generated {len(plots)} plots for data visualization")
+        return plots
     
