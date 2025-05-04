@@ -382,3 +382,18 @@ Column Information:
             for entry in st.session_state.agent.get_history():
                 st.text(entry)
 
+# Helper function to create a download link
+def download_link(object_to_download, download_filename, download_link_text):
+    """
+    Generates a link to download the given object_to_download.
+    """
+    if isinstance(object_to_download, str):
+        b64 = base64.b64encode(object_to_download.encode()).decode()
+    else:
+        b64 = base64.b64encode(object_to_download).decode()
+
+    return f'<a href="data:file/txt;base64,{b64}" download="{download_filename}">{download_link_text}</a>'
+
+
+if __name__ == "__main__":
+    main()
